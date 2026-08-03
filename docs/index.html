@@ -1,32 +1,778 @@
-<!doctype html>
-<html lang="fa">
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>در حال انتقال...</title>
-  <!-- Fallback for no-JS users -->
-  <meta http-equiv="refresh" content="0;url=/commit">
-  <script>
-    // Try a list of likely paths and redirect to the first that exists (same-origin fetch)
-    (function(){
-      var targets = ['/commit', '/commit.html', '/docs/commit', '/docs/commit.html'];
-      var found = false;
-      function tryNext(i){
-        if(i>=targets.length) return; // nothing found; rely on meta refresh
-        fetch(targets[i], {method: 'HEAD'}).then(function(res){
-          if(!found && res && (res.ok || res.status === 200)){
-            found = true;
-            window.location.replace(targets[i]);
-          } else {
-            tryNext(i+1);
-          }
-        }).catch(function(){ tryNext(i+1); });
-      }
-      tryNext(0);
-    })();
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="صنایع دستی وصال" />
+  <title>فروشگاه صنایع دستی وصال</title>
+  <link rel="manifest" href="/webhook/telegram-webapp-manifest" />
+  <link rel="apple-touch-icon" href="data:image/jpeg;base64,<ICON_BASE64>" />
+  <link rel="icon" href="data:image/jpeg;base64,<ICON_BASE64>" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { overflow-x: hidden; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      color: #fff; min-height: 100vh; position: relative; background: #0b0f2a;
+      padding: 0 0 92px 0;
+    }
+    .aurora { position: fixed; inset: -20%; z-index: 0; filter: blur(95px); opacity: 0.55; }
+    .aurora span { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+    .a1 { width: 55vw; height: 55vw; background: #ff2e97; top: -10%; left: -10%; animation: drift1 16s ease-in-out infinite; }
+    .a2 { width: 50vw; height: 50vw; background: #7b2ff7; bottom: -15%; right: -10%; animation: drift2 20s ease-in-out infinite; }
+    .a3 { width: 45vw; height: 45vw; background: #00e5ff; top: 30%; right: 10%; animation: drift3 18s ease-in-out infinite; }
+    .a4 { width: 40vw; height: 40vw; background: #00ffa3; bottom: 10%; left: 5%; animation: drift1 22s ease-in-out infinite; }
+    @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(8vw,6vh) scale(1.2)} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-7vw,-5vh) scale(1.15)} }
+    @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-6vw,7vh) scale(1.25)} }
+    .stars { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+    .star { position: absolute; bottom: -10px; width: 6px; height: 6px; border-radius: 50%;
+      background: radial-gradient(circle, #fff, rgba(255,255,255,0.1)); box-shadow: 0 0 8px #fff;
+      animation: floatUp linear infinite; }
+    @keyframes floatUp { 0%{transform:translateY(0) scale(0.5);opacity:0} 15%{opacity:1} 100%{transform:translateY(-110vh) scale(1.1);opacity:0} }
+
+    .wrap { max-width: 470px; margin: 0 auto; position: relative; z-index: 2; padding: 14px 14px 0; }
+    .card {
+      background: rgba(255,255,255,0.10); backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 24px;
+      padding: 18px 16px; margin-bottom: 14px;
+      box-shadow: 0 10px 34px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .screen { animation: fadeUp 0.42s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .header { text-align: center; }
+    .logo-wrap {
+      width: 128px; height: 128px; margin: 4px auto 14px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; position: relative;
+      background: conic-gradient(from 0deg,#00e5ff,#7b2ff7,#ff2e97,#00ffa3,#00e5ff);
+      padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      animation: floaty 4s ease-in-out infinite;
+    }
+    .logo-wrap::after {
+      content:''; position:absolute; inset:-8px; border-radius:50%; z-index:-1;
+      background: radial-gradient(circle, rgba(123,47,247,0.55), transparent 70%);
+      filter: blur(10px); animation: glow 3.2s ease-in-out infinite;
+    }
+    .logo-img {
+      width: 100%; height: 100%; border-radius: 50%;
+      object-fit: cover; display: block; border: 3px solid rgba(11,15,42,0.9);
+      background: #0b0f2a;
+    }
+    @keyframes spinBorder { to { transform: rotate(360deg); } }
+    @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+    @keyframes glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
+    body.light .logo-img { border-color: rgba(244,242,251,0.95); background:#fff; }
+    h1 {
+      font-size: 23px; font-weight: 800; margin-bottom: 6px;
+      background: linear-gradient(90deg,#fff,#ffd6f5,#c9f9ff,#d3ffe8,#fff);
+      background-size: 220% auto; -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; animation: shine 5s linear infinite;
+    }
+    @keyframes shine { to { background-position: 220% center; } }
+    .subtitle { font-size: 13px; opacity: 0.95; }
+    .tagline { margin-top: 8px; font-size: 11.5px; letter-spacing: 2px; opacity: 0.9; }
+    h2 { font-size: 18px; margin-bottom: 4px; font-weight: 800; }
+    .h2sub { font-size: 12.5px; opacity:0.8; margin-bottom: 14px; }
+    .center { text-align:center; }
+
+    .btn {
+      display: block; width: 100%; font-weight: 700; font-size: 15.5px;
+      padding: 15px; border-radius: 15px; border: none; cursor: pointer;
+      margin-bottom: 11px; text-align: center; text-decoration: none; color: #fff;
+      transition: transform .14s ease, filter .14s ease; position: relative; overflow: hidden;
+    }
+    .btn:active { transform: scale(0.96); filter: brightness(1.1); }
+    .btn.order { background: linear-gradient(135deg,#11998e,#38ef7d); box-shadow: 0 8px 24px rgba(56,239,125,0.5); }
+    .btn.back { background: rgba(255,255,255,0.20); box-shadow:none; }
+    .btn.install { background: linear-gradient(135deg,#7b2ff7,#00e5ff); box-shadow: 0 8px 24px rgba(123,47,247,0.5); }
+    .btn:disabled { opacity: 0.55; cursor: default; }
+    .btn .em { font-size: 20px; margin-left: 6px; }
+
+    /* install card */
+    .install-card { display:flex; align-items:center; gap:14px; }
+    .install-card .ic { flex:0 0 auto; width:56px; height:56px; border-radius:16px; display:flex;
+      align-items:center; justify-content:center; font-size:30px;
+      background: linear-gradient(135deg,#7b2ff7,#00e5ff); box-shadow:0 8px 20px rgba(123,47,247,0.5); }
+    .install-card .txt { flex:1 1 auto; min-width:0; }
+    .install-card .txt .t1 { font-size:15.5px; font-weight:800; margin-bottom:3px; }
+    .install-card .txt .t2 { font-size:12px; opacity:0.82; line-height:1.6; }
+
+    /* modal */
+    .modal-back { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+      display:flex; align-items:center; justify-content:center; padding:20px; animation: fadeIn .2s ease both; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal { background:#141a3a; border:1px solid rgba(255,255,255,0.2); border-radius:22px; padding:22px 18px;
+      max-width:400px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.6); animation: fadeUp .3s ease both; }
+    .modal h3 { font-size:17px; font-weight:800; margin-bottom:14px; text-align:center; }
+    .step { display:flex; align-items:flex-start; gap:11px; margin-bottom:13px; font-size:13.5px; line-height:1.7; }
+    .step .n { flex:0 0 auto; width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#7b2ff7,#00e5ff);
+      display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
+
+    /* category chips */
+    .chips { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; }
+    .chip { flex:0 0 auto; padding:9px 15px; border-radius:20px; font-size:13.5px; font-weight:700;
+      background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#fff; cursor:pointer;
+      transition: all .15s ease; white-space:nowrap; }
+    .chip.active { background: linear-gradient(135deg,#7b2ff7,#00e5ff); border-color:transparent; box-shadow:0 6px 16px rgba(123,47,247,0.5); }
+
+    .search { position:relative; margin-bottom:14px; }
+    .search input { width:100%; padding:13px 44px 13px 14px; border-radius:14px; border:2px solid transparent;
+      font-size:14.5px; font-family:inherit; background: rgba(255,255,255,0.94); color:#333; text-align:right; }
+    .search .ic { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:17px; opacity:.6; }
+
+    /* product row */
+    .prod { display:flex; align-items:center; gap:12px; padding:12px; border-radius:18px;
+      background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); margin-bottom:11px; }
+    .prod .thumb { flex:0 0 auto; width:58px; height:58px; border-radius:15px; display:flex; align-items:center;
+      justify-content:center; font-size:30px; background: linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06)); }
+    .prod .info { flex:1 1 auto; min-width:0; }
+    .prod .pname { font-size:15px; font-weight:800; margin-bottom:3px; }
+    .prod .pprice { font-size:13px; color:#7dffcf; font-weight:700; }
+    .prod .padd { flex:0 0 auto; }
+    .add-btn { border:none; cursor:pointer; color:#fff; font-weight:800; font-size:14px; border-radius:13px;
+      padding:11px 15px; background: linear-gradient(135deg,#ff2e97,#ff7eb3); box-shadow:0 6px 16px rgba(255,46,151,0.45);
+      transition: transform .12s ease; }
+    .add-btn:active { transform: scale(0.9); }
+
+    /* stepper */
+    .stepper { display:flex; align-items:center; gap:10px; }
+    .st-btn { width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; font-size:22px; font-weight:800;
+      color:#fff; background: linear-gradient(135deg,#ff512f,#dd2476); box-shadow:0 5px 14px rgba(221,36,118,0.5);
+      display:flex; align-items:center; justify-content:center; transition: transform .12s ease; }
+    .st-btn:active { transform: scale(0.86); }
+    .st-val { min-width:34px; text-align:center; font-size:17px; font-weight:800; }
+
+    /* cart item */
+    .citem { display:flex; align-items:center; gap:12px; padding:12px; border-radius:18px;
+      background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); margin-bottom:11px; }
+    .citem .thumb { flex:0 0 auto; width:50px; height:50px; border-radius:13px; display:flex; align-items:center;
+      justify-content:center; font-size:26px; background: linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06)); }
+    .citem .cinfo { flex:1 1 auto; min-width:0; }
+    .citem .cname { font-size:14.5px; font-weight:800; margin-bottom:5px; }
+    .citem .cprice { font-size:12.5px; color:#7dffcf; }
+    .trash { background:none; border:none; color:#ff9db2; font-size:20px; cursor:pointer; padding:4px; }
+
+    .summary { border-top:1px dashed rgba(255,255,255,0.25); margin-top:6px; padding-top:14px; }
+    .srow { display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px; opacity:.92; }
+    .srow.total { font-size:18px; font-weight:800; opacity:1; }
+    .srow.total b { color:#7dffcf; text-shadow:0 0 14px rgba(56,239,125,0.5); }
+
+    .empty { text-align:center; padding:30px 10px; }
+    .empty .big { font-size:56px; margin-bottom:12px; }
+
+    label { display:block; font-size:14px; margin-bottom:6px; opacity:0.95; }
+    input, textarea {
+      width: 100%; padding: 13px; border-radius: 12px; border: 2px solid transparent;
+      margin-bottom: 6px; font-size: 15px; font-family: inherit;
+      background: rgba(255,255,255,0.94); color: #333; text-align: right; transition: border-color .15s ease;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    input.invalid { border-color: #ff5b7f; }
+    input.valid { border-color: #38ef7d; }
+    .field-hint { font-size: 11.5px; min-height: 15px; margin-bottom: 12px; opacity: 0.9; }
+    .field-hint.err { color: #ff9db2; }
+    .field-hint.ok { color: #8affc4; }
+    #status { margin-top: 14px; font-size: 15px; min-height: 22px; text-align: center; font-weight: 700; line-height: 1.8; }
+
+    .video-box { background: #000; border: 1px solid rgba(255,255,255,0.35); border-radius: 16px; height: 190px; overflow: hidden; }
+    .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .video-note { font-size: 11.5px; opacity: 0.7; text-align: center; margin-top: 8px; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .contact-grid .btn { margin-bottom: 0; font-size: 14px; padding: 13px;
+      background: linear-gradient(135deg,#2193b0,#6dd5ed); box-shadow: 0 6px 16px rgba(33,147,176,0.4); }
+    .social-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .social-grid .btn { margin-bottom: 0; font-size: 12.5px; padding: 13px; }
+    .insta { background: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); box-shadow:0 6px 16px rgba(221,42,123,0.45); }
+    .eitaa { background: linear-gradient(135deg,#ff9800,#ffc107); box-shadow:0 6px 16px rgba(255,152,0,0.45); }
+    .rubika { background: linear-gradient(135deg,#7b2ff7,#9d50ff); box-shadow:0 6px 16px rgba(123,47,247,0.45); }
+    .footer { text-align:center; margin-top:4px; font-size:12px; opacity:0.78; padding-bottom:6px; }
+
+    /* success */
+    .success-ic { font-size:70px; text-align:center; margin-bottom:10px; animation: pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+    @keyframes pop { from{transform:scale(0)} to{transform:scale(1)} }
+
+    /* bottom nav */
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      max-width: 470px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4,1fr);
+      background: rgba(14,18,46,0.82); backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.16);
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+    }
+    .nav button { background:none; border:none; color: rgba(255,255,255,0.6); cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 0; font-family:inherit;
+      font-size:11px; font-weight:700; position:relative; transition: color .15s ease; }
+    .nav button .nic { font-size:21px; transition: transform .15s ease; }
+    .nav button.active { color:#fff; }
+    .nav button.active .nic { transform: translateY(-2px) scale(1.12); }
+    .nav .badge { position:absolute; top:0; right:calc(50% - 22px); min-width:18px; height:18px; padding:0 5px;
+      border-radius:9px; background: linear-gradient(135deg,#ff2e97,#ff512f); color:#fff; font-size:11px;
+      display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:0 3px 8px rgba(255,46,151,0.6); }
+
+    /* ---------- new features: theme toggle, detail, reviews, coupon ---------- */
+    .theme-toggle { margin-top:12px; display:inline-block; padding:9px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.14); color:#fff; font-family:inherit; font-weight:700; font-size:12.5px; cursor:pointer; }
+    .theme-toggle:active { transform: scale(0.95); }
+    .detail-emoji { font-size:80px; margin:6px 0 8px; }
+    .rev { text-align:right; background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); border-radius:14px; padding:11px 13px; margin-bottom:10px; }
+    .revTop { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+    .revU { font-weight:800; font-size:13.5px; }
+    .revStars { color:#ffcf5b; font-size:14px; letter-spacing:1px; }
+    .revT { font-size:13px; line-height:1.8; opacity:.95; }
+    .rev-note { margin-top:6px; font-size:11.5px; opacity:.75; text-align:center; }
+    .coupon-row { display:flex; gap:8px; }
+    .coupon-row input { margin-bottom:0; }
+    .coupon-btn { flex:0 0 auto; border:none; cursor:pointer; color:#fff; font-weight:800; font-size:13.5px; border-radius:12px; padding:0 18px;
+      background: linear-gradient(135deg,#7b2ff7,#00e5ff); box-shadow:0 6px 16px rgba(123,47,247,0.4); }
+    .coupon-btn:active { transform: scale(0.94); }
+    .coupon-on { display:flex; align-items:center; justify-content:space-between; gap:8px; background: rgba(56,239,125,0.14);
+      border:1px solid rgba(56,239,125,0.4); border-radius:12px; padding:10px 13px; font-size:12.5px; }
+    .coupon-x { border:none; background:rgba(255,255,255,0.16); color:#fff; border-radius:9px; padding:5px 12px; font-family:inherit; font-weight:700; cursor:pointer; font-size:12px; }
+
+    /* ---------- light theme ---------- */
+    body.light { background:#f4f2fb; color:#1c1330; }
+    body.light .aurora { opacity:0.38; }
+    body.light .card { background: rgba(255,255,255,0.75); border:1px solid rgba(20,10,50,0.10);
+      box-shadow: 0 14px 40px rgba(80,50,140,0.14), inset 0 1px 0 rgba(255,255,255,0.6); }
+    body.light .subtitle, body.light .tagline, body.light .h2sub, body.light .field-hint { color:#4a3d68; opacity:0.95; }
+    body.light h1 { -webkit-text-fill-color: initial; background:none; color:#5a2ea6; }
+    body.light .prod, body.light .citem, body.light .rev { background: rgba(123,47,247,0.06); border:1px solid rgba(20,10,50,0.10); }
+    body.light .chip { background: rgba(123,47,247,0.10); border:1px solid rgba(20,10,50,0.12); color:#3a2a60; }
+    body.light .chip.active { color:#fff; }
+    body.light .theme-toggle { background: rgba(123,47,247,0.12); border:1px solid rgba(20,10,50,0.15); color:#3a2a60; }
+    body.light .nav { background: rgba(255,255,255,0.9); border-top:1px solid rgba(20,10,50,0.10); }
+    body.light .nav button { color: rgba(40,25,80,0.55); }
+    body.light .nav button.active { color:#5a2ea6; }
+    body.light .btn.back { background: rgba(20,10,50,0.08); color:#3a2a60; }
+    body.light .pprice { color:#0a8f5f; }
+    body.light .srow.total b { color:#0a8f5f; text-shadow:none; }
+    body.light input, body.light textarea { background:#fff; color:#222; }
+    body.light .field-hint.err { color:#c62958; }
+    body.light .field-hint.ok { color:#0a8f5f; }
+  </style>
 </head>
 <body>
-  <p>در حال انتقال... اگر به طور خودکار منتقل نشدید، <a href="/commit">اینجا کلیک کنید</a>.</p>
+  <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span></div>
+  <div class="stars" id="stars"></div>
+
+  <div class="wrap"><div id="app"></div></div>
+
+  <nav class="nav" id="nav">
+    <button data-tab="home" onclick="go('home')"><span class="nic">🏠</span><span>خانه</span></button>
+    <button data-tab="shop" onclick="go('shop')"><span class="nic">🛍️</span><span>محصولات</span></button>
+    <button data-tab="cart" onclick="go('cart')"><span class="nic">🛒</span><span>سبد</span></button>
+    <button data-tab="contact" onclick="go('contact')"><span class="nic">📞</span><span>ارتباط</span></button>
+  </nav>
+
+  <script>
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0b0f2a'); tg.setBackgroundColor('#0b0f2a'); } catch(e){} }
+    var ORDER_URL = 'https://sajadvesali.app.n8n.cloud/webhook/telegram-order';
+    var APP_URL = 'https://sajadvesali.app.n8n.cloud/webhook/telegram-webapp';
+    var APK_URL = 'https://bucket.appilix.com/app-apk-e6f7482e623f45d7b9f4de1a23147366-1785301297.apk';
+    var NAME_MIN = 3, NAME_MAX = 30;
+    /* ---------- coupons (کد تخفیف) ---------- */
+    var COUPONS = { 'VESAL10': { off:10, label:'۱۰٪ تخفیف' }, 'VESAL20': { off:20, label:'۲۰٪ تخفیف' }, 'WELCOME15': { off:15, label:'۱۵٪ تخفیف خوش‌آمد' } };
+    /* ---------- ratings (نظرات و امتیاز نمونه) ---------- */
+    var REVIEWS = {
+      n1: [ { u:'مریم', r:5, t:'نخ ویسکوز فوق‌العاده نرم بود، کیفیت عالی 🌸' }, { u:'سحر', r:4, t:'براقی قشنگی داره، راضی بودم.' } ],
+      n3: [ { u:'زهرا', r:5, t:'کیفیت نخ عالی و یکدست بود، راضی بودم.' } ],
+      h1: [ { u:'علی', r:5, t:'حوله حمام خیلی خوش‌بافت و پرآب‌گیر بود 👌' }, { u:'نگار', r:5, t:'کیفیت دست‌بافش معلومه، ممنون.' } ],
+      c1: [ { u:'رضا', r:4, t:'چله سنتی تمیز و دقیق آماده شد.' } ]
+    };
+
+    /* ---------- PWA install ---------- */
+    var deferredPrompt = null;
+    function isStandalone(){ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+    function isTelegram(){ return !!(tg && typeof tg.initData === 'string' && tg.initData.length > 0); }
+    function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){
+        try { navigator.serviceWorker.register('/webhook/telegram-webapp-sw', { scope: '/webhook/' }).catch(function(){}); } catch(e){}
+      });
+    }
+    window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferredPrompt = e; if(state.tab==='home') render(); });
+    window.addEventListener('appinstalled', function(){ deferredPrompt = null; toast('اپ با موفقیت نصب شد ✓'); if(state.tab==='home') render(); });
+
+    function doInstall(){
+      haptic();
+      if (isTelegram()) {
+        if (tg && tg.openLink) { tg.openLink(APK_URL); } else { window.open(APK_URL, '_blank'); }
+        return;
+      }
+      window.location.href = APK_URL;
+    }
+
+    function installCardHTML(){
+      if (isTelegram()) {
+        return '<div class="card">'
+          + '<div class="install-card" style="margin-bottom:14px">'
+          + '<span class="ic">⬇️</span>'
+          + '<span class="txt"><span class="t1">دانلود اپ اندروید</span><span class="t2">فایل نصب (APK) اپ صنایع دستی وصال را دانلود کنید. اگر دانلود شروع نشد، صفحه در مرورگر باز می‌شود.</span></span>'
+          + '</div>'
+          + '<button class="btn install" onclick="doInstall()">⬇️ دانلود اپ (فایل نصب APK)</button>'
+          + '</div>';
+      }
+      return '<div class="card">'
+        + '<div class="install-card" style="margin-bottom:14px">'
+        + '<span class="ic">⬇️</span>'
+        + '<span class="txt"><span class="t1">دانلود اپ اندروید</span><span class="t2">فایل نصب (APK) اپ صنایع دستی وصال را دانلود و روی گوشی اندروید خود نصب کنید.</span></span>'
+        + '</div>'
+        + '<button class="btn install" onclick="doInstall()">⬇️ دانلود اپ (فایل نصب APK)</button>'
+        + '</div>';
+    }
+
+    function showAndroidGuide(){
+      var m = document.createElement('div');
+      m.className = 'modal-back';
+      m.onclick = function(ev){ if(ev.target===m) m.parentNode.removeChild(m); };
+      m.innerHTML = '<div class="modal">'
+        + '<h3>📲 نصب روی گوشی (اندروید)</h3>'
+        + '<div class="step"><span class="n">۱</span><span>اگر این صفحه در مرورگر داخل تلگرام باز شده، اول از منوی بالا گزینه «Open in Chrome / باز کردن در کروم» را بزنید تا در خودِ کروم باز شود.</span></div>'
+        + '<div class="step"><span class="n">۲</span><span>در کروم روی دکمه منو (سه نقطه ⋮ در بالا سمت راست) بزنید.</span></div>'
+        + '<div class="step"><span class="n">۳</span><span>گزینه «Install app / نصب برنامه» یا «Add to Home screen / افزودن به صفحه اصلی» را انتخاب کنید.</span></div>'
+        + '<div class="step"><span class="n">۴</span><span>روی «Install / نصب» بزنید تا آیکون فروشگاه روی صفحه اصلی گوشی اضافه شود.</span></div>'
+        + '<button class="btn install" style="margin-top:6px" onclick="this.closest(\'.modal-back\').remove()">متوجه شدم ✓</button>'
+        + '</div>';
+      document.body.appendChild(m);
+    }
+
+    function showIOSGuide(){
+      var m = document.createElement('div');
+      m.className = 'modal-back';
+      m.onclick = function(ev){ if(ev.target===m) m.parentNode.removeChild(m); };
+      m.innerHTML = '<div class="modal">'
+        + '<h3>📲 نصب روی iPhone / iPad</h3>'
+        + '<div class="step"><span class="n">۱</span><span>در نوار پایین Safari روی دکمه اشتراک‌گذاری (مربع با فلش رو به بالا ⬆️) بزنید.</span></div>'
+        + '<div class="step"><span class="n">۲</span><span>از فهرست، گزینه «Add to Home Screen / افزودن به صفحه اصلی» را انتخاب کنید.</span></div>'
+        + '<div class="step"><span class="n">۳</span><span>روی «Add / افزودن» بزنید تا آیکون فروشگاه روی صفحه اصلی نصب شود.</span></div>'
+        + '<button class="btn install" style="margin-top:6px" onclick="this.closest(\'.modal-back\').remove()">متوجه شدم ✓</button>'
+        + '</div>';
+      document.body.appendChild(m);
+    }
+
+    (function makeStars(){
+      var box = document.getElementById('stars');
+      for (var i=0;i<10;i++){
+        var s=document.createElement('div'); s.className='star';
+        s.style.left=(Math.random()*100)+'%';
+        s.style.animationDuration=(7+Math.random()*9)+'s';
+        s.style.animationDelay=(Math.random()*9)+'s';
+        var sz=3+Math.random()*5; s.style.width=sz+'px'; s.style.height=sz+'px';
+        box.appendChild(s);
+      }
+    })();
+
+    function haptic(t){ if(tg&&tg.HapticFeedback){ t==='ok'?tg.HapticFeedback.notificationOccurred('success'):tg.HapticFeedback.impactOccurred('light'); } }
+
+    /* ---------- catalog ---------- */
+    var CATALOG = [
+      { id:'n1', cat:'نخ', name:'نخ ویسکوز سفید', price:0, unit:'کیلو', emoji:'🧶', desc:'نخ ویسکوز سفید نرم و براق با لطافت بالا؛ عالی برای بافت حوله‌های نرم و کارهای دست‌ساز. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'n2', cat:'نخ', name:'نخ ویسکوز رنگی', price:0, unit:'کیلو', emoji:'🧶', desc:'نخ ویسکوز رنگی براق و لطیف در رنگ‌های متنوع؛ مناسب بافت‌های زیبا و درخشان. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'n3', cat:'نخ', name:'نخ پلی‌استر ویسکوز سفید', price:0, unit:'کیلو', emoji:'🧶', desc:'ترکیب پلی‌استر و ویسکوز سفید؛ تعادل نرمی و دوام، مناسب بافت‌هایی که هم زیبایی و هم مقاومت می‌خواهند. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'n4', cat:'نخ', name:'نخ پلی‌استر ویسکوز رنگی', price:0, unit:'کیلو', emoji:'🧶', desc:'ترکیب پلی‌استر و ویسکوز رنگی؛ بادوام و خوش‌رنگ، مناسب بافت‌های متنوع. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'n5', cat:'نخ', name:'نخ مخمل', price:0, unit:'کیلو', emoji:'🧶', desc:'نخ مخمل لطیف و پرحجم؛ مناسب بافت‌های نرم و لوکس با ظاهر مخملی. قیمت هنگام تماس اعلام می‌شود.' },
+
+      { id:'h1', cat:'حوله', name:'حوله حمام بزرگ (نخی)', price:0, unit:'عدد', emoji:'🛁', desc:'حوله حمام بزرگ نخی، ابعاد ۱۰۰×۱۸۰؛ دست‌باف با جذب آب بالا و بافت نرم. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h1v', cat:'حوله', name:'حوله حمام بزرگ (مخمل)', price:0, unit:'عدد', emoji:'🛁', desc:'حوله حمام بزرگ مخمل، ابعاد ۱۰۰×۱۸۰؛ لطیف و لوکس با بافت مخملی. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h2', cat:'حوله', name:'حوله حمام استخری (نخی)', price:0, unit:'عدد', emoji:'🏊', desc:'حوله حمام استخری نخی، ابعاد ۱۰۰×۱۲۰؛ پرآب‌گیر و مناسب استخر و ساحل. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h2v', cat:'حوله', name:'حوله حمام استخری (مخمل)', price:0, unit:'عدد', emoji:'🏊', desc:'حوله حمام استخری مخمل، ابعاد ۱۰۰×۱۲۰؛ نرم و پرحجم با بافت مخملی. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h3', cat:'حوله', name:'حوله دست و صورت (نخی)', price:0, unit:'عدد', emoji:'🧺', desc:'حوله دست و صورت نخی، ابعاد ۴۵×۷۵؛ سبک و خوش‌بافت برای استفاده روزانه. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h3v', cat:'حوله', name:'حوله دست و صورت (مخمل)', price:0, unit:'عدد', emoji:'🧺', desc:'حوله دست و صورت مخمل، ابعاد ۴۵×۷۵؛ لطیف و نرم با بافت مخملی. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h4', cat:'حوله', name:'دستمال', price:0, unit:'عدد', emoji:'🧻', desc:'دستمال دست‌باف، ابعاد ۳۵×۳۵؛ کاربردی برای آشپزخانه و منزل. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h5', cat:'حوله', name:'تن‌پوش', price:0, unit:'عدد', emoji:'👘', desc:'تن‌پوش دست‌باف نرم و راحت؛ مناسب حمام و منزل. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h6', cat:'حوله', name:'چادرشب پلی‌استر کاموا', price:0, unit:'عدد', emoji:'🧵', desc:'چادرشب پلی‌استر کاموا، ابعاد ۲۰۰×۲۰۰؛ بادوام و خوش‌نقش. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'h7', cat:'حوله', name:'چادرشب تمام کاموا', price:0, unit:'عدد', emoji:'🧶', desc:'چادرشب تمام کاموا، ابعاد ۲۰۰×۲۰۰؛ باکیفیت و لطیف. قیمت هنگام تماس اعلام می‌شود.' },
+
+      { id:'c1', cat:'چله', name:'چله سنتی (قنده)', price:0, unit:'عدد', emoji:'🧵', desc:'چله سنتی (قنده)؛ آماده‌سازی چله به روش سنتی. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'c2', cat:'چله', name:'نورد کوچک (دست‌بافت)', price:0, unit:'عدد', emoji:'🧵', desc:'نورد کوچک دست‌بافت؛ مناسب کارهای ظریف و دست‌ساز. قیمت هنگام تماس اعلام می‌شود.' },
+      { id:'c3', cat:'چله', name:'نورد بزرگ (صنعتی)', price:0, unit:'عدد', emoji:'🧵', desc:'نورد بزرگ صنعتی؛ مناسب دستگاه‌های صنعتی. قیمت هنگام تماس اعلام می‌شود.' }
+    ];
+    var CATS = ['همه','نخ','حوله','چله'];
+
+    /* ---------- state ---------- */
+    var state = { tab:'home', filter:'همه', search:'', detail:null };
+    var cart = loadCart();
+
+    function loadCart(){ try { return JSON.parse(localStorage.getItem('vesal_cart')||'[]'); } catch(e){ return []; } }
+    function saveCart(){ try { localStorage.setItem('vesal_cart', JSON.stringify(cart)); } catch(e){} }
+    function findProduct(id){ for(var i=0;i<CATALOG.length;i++){ if(CATALOG[i].id===id) return CATALOG[i]; } return null; }
+    function cartLine(id){ for(var i=0;i<cart.length;i++){ if(cart[i].id===id) return cart[i]; } return null; }
+    function cartCount(){ var n=0; for(var i=0;i<cart.length;i++){ n+=cart[i].qty; } return n; }
+    function cartTotal(){ var t=0; for(var i=0;i<cart.length;i++){ var p=findProduct(cart[i].id); if(p&&p.price>0) t+=p.price*cart[i].qty; } return t; }
+    function hasNegotiable(){ for(var i=0;i<cart.length;i++){ var p=findProduct(cart[i].id); if(p&&p.price===0) return true; } return false; }
+
+    function addToCart(id){ var l=cartLine(id); if(l){ l.qty++; } else { cart.push({ id:id, qty:1 }); } saveCart(); haptic(); flashBadge(); if(state.tab!=='cart') toast('به سبد اضافه شد ✓'); else render(); syncMainButton(); updateNav(); }
+    function incCart(id){ var l=cartLine(id); if(l){ l.qty++; saveCart(); haptic(); render(); } }
+    function decCart(id){ var l=cartLine(id); if(l){ l.qty--; if(l.qty<1){ removeCart(id); return; } saveCart(); haptic(); render(); } }
+    function removeCart(id){ var out=[]; for(var i=0;i<cart.length;i++){ if(cart[i].id!==id) out.push(cart[i]); } cart=out; saveCart(); haptic(); render(); }
+
+    /* ---------- helpers ---------- */
+    function money(n){ var s=String(n); var out=''; var c=0; for(var i=s.length-1;i>=0;i--){ out=s.charAt(i)+out; c++; if(c%3===0 && i>0) out=','+out; } return out+' تومان'; }
+    function priceLabel(p){ return p.price>0 ? money(p.price)+' / '+p.unit : ''; }
+    function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function toEnDigits(str){ return (str||'').replace(/[۰-۹]/g, function(d){ return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); }).replace(/[٠-٩]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }); }
+    function normalizePhone(raw){ var p=toEnDigits(raw).replace(/[^0-9]/g,''); if(p.indexOf('0098')===0) p='0'+p.slice(4); else if(p.indexOf('98')===0 && p.length===12) p='0'+p.slice(2); else if(p.indexOf('9')===0 && p.length===10) p='0'+p; return p; }
+    function isValidPhone(raw){ return /^09\d{9}$/.test(normalizePhone(raw)); }
+
+    /* ---------- ratings / coupon / theme helpers ---------- */
+    function reviewsFor(id){ return REVIEWS[id] || []; }
+    function avgRating(id){ var rv=reviewsFor(id); if(!rv.length) return 0; var s=0; for(var i=0;i<rv.length;i++) s+=rv[i].r; return Math.round((s/rv.length)*10)/10; }
+    function stars(n){ var full=Math.round(n); var out=''; for(var i=1;i<=5;i++){ out+= i<=full ? '★' : '☆'; } return out; }
+    function loadCoupon(){ try { return JSON.parse(localStorage.getItem('vesal_coupon')||'null'); } catch(e){ return null; } }
+    function saveCoupon(c){ try { if(c) localStorage.setItem('vesal_coupon', JSON.stringify(c)); else localStorage.removeItem('vesal_coupon'); } catch(e){} }
+    var coupon = loadCoupon();
+    function discountAmount(){ var t=cartTotal(); if(!coupon||t<=0) return 0; return Math.round(t*coupon.off/100); }
+    function payableTotal(){ return Math.max(0, cartTotal()-discountAmount()); }
+    function applyCoupon(){
+      var el=document.getElementById('couponInput'); var msg=document.getElementById('couponMsg'); if(!el) return;
+      var code=(el.value||'').trim().toUpperCase();
+      if(!code){ coupon=null; saveCoupon(null); if(msg){ msg.className='field-hint'; msg.textContent='کد تخفیف را وارد کنید'; } render(); return; }
+      if(COUPONS[code]){ coupon={ code:code, off:COUPONS[code].off, label:COUPONS[code].label }; saveCoupon(coupon); haptic('ok'); toast('کد تخفیف اعمال شد ✓'); render(); }
+      else { coupon=null; saveCoupon(null); haptic(); if(msg){ msg.className='field-hint err'; msg.textContent='❌ کد تخفیف نامعتبر است.'; } }
+    }
+    function removeCoupon(){ coupon=null; saveCoupon(null); haptic(); render(); }
+
+    var themeState = (function(){ try { return localStorage.getItem('vesal_theme') || 'dark'; } catch(e){ return 'dark'; } })();
+    function currentTheme(){ return themeState; }
+    function applyTheme(t){ themeState = t; try { localStorage.setItem('vesal_theme', t); } catch(e){} if(t==='light'){ document.body.classList.add('light'); } else { document.body.classList.remove('light'); } if(tg){ try{ var c = t==='light' ? '#f4f2fb' : '#0b0f2a'; tg.setHeaderColor(c); tg.setBackgroundColor(c); }catch(e){} } }
+    function toggleTheme(){ applyTheme(themeState==='light' ? 'dark' : 'light'); haptic(); render(); }
+
+
+    var app = document.getElementById('app');
+    function paint(html){ app.innerHTML = '<div class="screen">'+html+'</div>'; window.scrollTo(0,0); }
+
+    /* ---------- toast ---------- */
+    var toastTimer=null;
+    function toast(msg){
+      var el=document.getElementById('toast');
+      if(!el){ el=document.createElement('div'); el.id='toast'; el.style.cssText='position:fixed;bottom:104px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(17,153,142,0.95);color:#fff;padding:11px 20px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity .2s ease,transform .2s ease;'; document.body.appendChild(el); }
+      el.textContent=msg; el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(-6px)';
+      if(toastTimer) clearTimeout(toastTimer);
+      toastTimer=setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateX(-50%)'; }, 1600);
+    }
+    function flashBadge(){ var b=document.getElementById('cartBadge'); if(b){ b.animate([{transform:'scale(1)'},{transform:'scale(1.5)'},{transform:'scale(1)'}],{duration:340}); } }
+
+    /* ---------- nav ---------- */
+    function updateNav(){
+      var btns=document.querySelectorAll('#nav button');
+      for(var i=0;i<btns.length;i++){ btns[i].className = (btns[i].getAttribute('data-tab')===state.tab)?'active':''; }
+      var cartBtn=document.querySelector('#nav button[data-tab=cart]');
+      var old=document.getElementById('cartBadge'); if(old) old.parentNode.removeChild(old);
+      var cnt=cartCount();
+      if(cnt>0 && cartBtn){ var b=document.createElement('span'); b.id='cartBadge'; b.className='badge'; b.textContent=cnt; cartBtn.appendChild(b); }
+    }
+
+    function go(tab){ state.tab=tab; haptic(); render(); }
+
+    function render(){
+      if(state.tab==='home') screenHome();
+      else if(state.tab==='shop') screenShop();
+      else if(state.tab==='detail') screenDetail();
+      else if(state.tab==='cart') screenCart();
+      else if(state.tab==='contact') screenContact();
+      else if(state.tab==='checkout') screenCheckout();
+      else if(state.tab==='success') screenSuccess();
+      updateNav();
+      syncTelegramButtons();
+    }
+    function openDetail(id){ state.detail=id; state.tab='detail'; haptic(); render(); }
+
+    /* ---------- screens ---------- */
+    function screenHome(){
+      paint(
+        '<div class="card header">'
+        + '<div class="logo-wrap"><img class="logo-img" src="data:image/jpeg;base64,<ICON_BASE64>" alt="لوگو" /></div>'
+        + '<h1>فروشگاه صنایع دستی وصال</h1>'
+        + '<div class="subtitle">✨ تجربه‌ی خرید محصولات دست‌ساز و اصیل ✨</div>'
+        + '<div class="tagline">نخ • حوله • چله‌پیچی</div>'
+        + '<button class="theme-toggle" onclick="toggleTheme()">'+(currentTheme()==='light'?'🌙 حالت شب':'☀️ حالت روز')+'</button>'
+        + '</div>'
+        + installCardHTML()
+        + '<div class="card">'
+        + '<h2 class="center">🛍️ دسته‌بندی محصولات</h2>'
+        + '<div class="h2sub center">برای مشاهده محصولات یک دسته را انتخاب کنید</div>'
+        + catCard('نخ','🧶','انواع نخ ویسکوز، پنبه و پلی‌استر')
+        + catCard('حوله','🛁','حوله حمام، دست و صورت، استخری، تن‌پوش و چادرشب')
+        + catCard('چله','🧵','چله سنتی، نورد کوچک و نورد بزرگ')
+        + '</div>'
+        + '<div class="card">'
+        + '<h2 class="center">🎬 معرفی صنایع دستی</h2>'
+        + '<div class="video-box"><iframe src="https://www.aparat.com/video/video/embed/videohash/e4829x2/vt/frame" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe></div>'
+        + '<div class="video-note">ویدیوی معرفی هنرهای دستی</div>'
+        + '</div>'
+        + '<div class="footer">فروشگاه صنایع دستی وصال 🌸</div>'
+      );
+    }
+    function catCard(cat, emoji, desc){
+      return '<button class="prod" style="width:100%;text-align:right;cursor:pointer;border:1px solid rgba(255,255,255,0.16)" onclick="openCat(\''+cat+'\')">'
+        + '<span class="thumb">'+emoji+'</span>'
+        + '<span class="info"><span class="pname" style="display:block">'+cat+'</span><span class="pprice" style="color:rgba(255,255,255,0.75);font-weight:600">'+desc+'</span></span>'
+        + '<span class="padd" style="font-size:20px;opacity:.7">‹</span>'
+        + '</button>';
+    }
+    function openCat(cat){ state.filter=cat; state.search=''; state.tab='shop'; haptic(); render(); }
+
+    function screenShop(){
+      var chips='';
+      for(var i=0;i<CATS.length;i++){ var c=CATS[i]; chips+='<button class="chip'+(state.filter===c?' active':'')+'" onclick="setFilter(\''+c+'\')">'+c+'</button>'; }
+      var list=buildProdList();
+      paint(
+        '<div class="card">'
+        + '<h2>🛍️ محصولات</h2>'
+        + '<div class="h2sub">محصولات را انتخاب و به سبد اضافه کنید</div>'
+        + '<div class="search"><span class="ic">🔍</span><input id="searchInput" type="text" placeholder="جستجوی محصول..." value="'+esc(state.search)+'" oninput="onSearch(this.value)" /></div>'
+        + '<div class="chips">'+chips+'</div>'
+        + '<div id="prodList">'+list+'</div>'
+        + '</div>'
+      );
+    }
+    function buildProdList(){
+      var list=''; var q=state.search.trim(); var count=0;
+      for(var j=0;j<CATALOG.length;j++){
+        var p=CATALOG[j];
+        if(state.filter!=='همه' && p.cat!==state.filter) continue;
+        if(q && p.name.indexOf(q)===-1 && p.cat.indexOf(q)===-1) continue;
+        count++;
+        var line=cartLine(p.id);
+        var right = line
+          ? '<div class="stepper"><button class="st-btn" onclick="decCart(\''+p.id+'\')">−</button><span class="st-val">'+line.qty+'</span><button class="st-btn" onclick="incCart(\''+p.id+'\')">+</button></div>'
+          : '<button class="add-btn" onclick="addToCart(\''+p.id+'\')">افزودن +</button>';
+        var av=avgRating(p.id);
+        var rtxt = av>0 ? '<span class="pRate" style="font-size:11.5px;color:#ffcf5b;display:block;margin-top:2px">'+stars(av)+' '+av+'</span>' : '';
+        list += '<div class="prod"><span class="thumb" onclick="openDetail(\''+p.id+'\')" style="cursor:pointer">'+p.emoji+'</span>'
+          + '<span class="info" onclick="openDetail(\''+p.id+'\')" style="cursor:pointer"><span class="pname">'+p.name+'</span>'+(priceLabel(p)?('<span class="pprice">'+priceLabel(p)+'</span>'):'')+rtxt+'</span>'
+          + '<span class="padd">'+right+'</span></div>';
+      }
+      if(count===0) list='<div class="empty"><div class="big">🔍</div><div>محصولی یافت نشد</div></div>';
+      return list;
+    }
+    function setFilter(c){ state.filter=c; haptic(); render(); }
+    function onSearch(v){ state.search=v; var box=document.getElementById('prodList'); if(box) box.innerHTML=buildProdList(); }
+
+    function screenDetail(){
+      var p=findProduct(state.detail);
+      if(!p){ state.tab='shop'; render(); return; }
+      var line=cartLine(p.id);
+      var rv=reviewsFor(p.id); var av=avgRating(p.id);
+      var rightBtn = line
+        ? '<div class="stepper"><button class="st-btn" onclick="decCart(\''+p.id+'\')">−</button><span class="st-val">'+line.qty+'</span><button class="st-btn" onclick="incCart(\''+p.id+'\')">+</button></div>'
+        : '<button class="btn order" onclick="addToCart(\''+p.id+'\')">افزودن به سبد +</button>';
+      var reviewsHtml='';
+      if(rv.length){
+        for(var i=0;i<rv.length;i++){ reviewsHtml += '<div class="rev"><div class="revTop"><span class="revU">'+esc(rv[i].u)+'</span><span class="revStars">'+stars(rv[i].r)+'</span></div><div class="revT">'+esc(rv[i].t)+'</div></div>'; }
+      } else {
+        reviewsHtml = '<div class="h2sub">هنوز نظری ثبت نشده است. شما اولین نفر باشید 🌸</div>';
+      }
+      paint(
+        '<div class="card center">'
+        + '<div class="detail-emoji">'+p.emoji+'</div>'
+        + '<h2 class="center">'+p.name+'</h2>'
+        + (av>0 ? '<div style="color:#ffcf5b;font-size:16px;margin:4px 0 8px">'+stars(av)+' <span style="opacity:.85;font-size:13px">('+av+' از '+rv.length+' نظر)</span></div>' : '')
+        + (priceLabel(p)?('<div class="pprice" style="font-size:15px;margin-bottom:10px">'+priceLabel(p)+'</div>'):'')
+        + '<p style="font-size:13.5px;line-height:2;opacity:.95;text-align:right">'+esc(p.desc||'')+'</p>'
+        + '<div style="margin-top:14px">'+rightBtn+'</div>'
+        + '<button class="btn back" onclick="go(\'shop\')">↩️ بازگشت به محصولات</button>'
+        + '</div>'
+        + '<div class="card">'
+        + '<h2>⭐ نظرات مشتریان</h2>'
+        + '<div class="h2sub">تجربه‌ی خریداران این محصول</div>'
+        + reviewsHtml
+        + '<div class="rev-note">برای ثبت نظر، بعد از خرید با ما در بخش «ارتباط» در تماس باشید 💬</div>'
+        + '</div>'
+      );
+    }
+
+    function screenCart(){
+      if(cart.length===0){
+        paint('<div class="card"><h2>🛒 سبد خرید</h2><div class="empty"><div class="big">🛒</div><div>سبد خرید شما خالی است</div><button class="btn order" style="margin-top:18px" onclick="go(\'shop\')">مشاهده محصولات</button></div></div>');
+        return;
+      }
+      var items='';
+      for(var i=0;i<cart.length;i++){
+        var p=findProduct(cart[i].id); if(!p) continue;
+        var lineTotal = p.price>0 ? money(p.price*cart[i].qty) : '';
+        items += '<div class="citem"><span class="thumb">'+p.emoji+'</span>'
+          + '<span class="cinfo"><span class="cname">'+p.name+'</span>'+(lineTotal?('<span class="cprice">'+lineTotal+'</span>'):'')+'</span>'
+          + '<div class="stepper"><button class="st-btn" onclick="decCart(\''+p.id+'\')">−</button><span class="st-val">'+cart[i].qty+'</span><button class="st-btn" onclick="incCart(\''+p.id+'\')">+</button></div>'
+          + '<button class="trash" onclick="removeCart(\''+p.id+'\')">🗑️</button></div>';
+      }
+      var total=cartTotal();
+      var disc=discountAmount(); var pay=payableTotal();
+      var couponBox = coupon
+        ? '<div class="coupon-on"><span>✅ کد <b>'+esc(coupon.code)+'</b> ('+esc(coupon.label)+') اعمال شد</span><button class="coupon-x" onclick="removeCoupon()">حذف</button></div>'
+        : '<div class="coupon-row"><input id="couponInput" type="text" placeholder="کد تخفیف (مثلا VESAL10)" /><button class="coupon-btn" onclick="applyCoupon()">اعمال</button></div><div class="field-hint" id="couponMsg">کدهای فعال: VESAL10 و VESAL20 و WELCOME15</div>';
+      var discRow = disc>0 ? '<div class="srow"><span>تخفیف ('+esc(coupon.label)+')</span><span style="color:#7dffcf">- '+money(disc)+'</span></div>' : '';
+      paint(
+        '<div class="card">'
+        + '<h2>🛒 سبد خرید</h2>'
+        + '<div class="h2sub">'+cartCount()+' مورد در سبد شما</div>'
+        + items
+        + '<div style="margin:6px 0 4px">'+couponBox+'</div>'
+        + '<div class="summary"><div class="srow"><span>تعداد اقلام</span><span>'+cartCount()+'</span></div>'
+        + (total>0 ? '<div class="srow"><span>جمع اقلام</span><span>'+money(total)+'</span></div>' : '')
+        + discRow
+        + (total>0 ? '<div class="srow total"><span>مبلغ قابل پرداخت</span><b>'+money(pay)+'</b></div>' : '')
+        + '</div>'
+        + '<button class="btn order" onclick="go(\'checkout\')">ادامه و تکمیل سفارش ‹</button>'
+        + '<button class="btn back" onclick="go(\'shop\')">افزودن محصول بیشتر</button>'
+        + '</div>'
+      );
+    }
+
+    function screenCheckout(){
+      var lines='';
+      for(var i=0;i<cart.length;i++){ var p=findProduct(cart[i].id); if(!p) continue; lines+='<div class="srow"><span>'+p.name+' × '+cart[i].qty+'</span><span></span></div>'; }
+      var total=cartTotal();
+      var disc=discountAmount(); var pay=payableTotal();
+      var discRow = disc>0 ? '<div class="srow"><span>تخفیف ('+esc(coupon.label)+')</span><span style="color:#7dffcf">- '+money(disc)+'</span></div>' : '';
+      paint(
+        '<div class="card">'
+        + '<h2>📝 تکمیل سفارش</h2>'
+        + '<div class="h2sub">اطلاعات خود را وارد کنید</div>'
+        + '<div class="summary" style="border-top:none;padding-top:0;margin-bottom:16px">'+lines+ (total>0?((disc>0?('<div class="srow"><span>جمع اقلام</span><span>'+money(total)+'</span></div>'):'') + discRow + '<div class="srow total"><span>مبلغ قابل پرداخت</span><b>'+money(pay)+'</b></div>'):'')+'</div>'
+        + '<label>نام و نام خانوادگی</label>'
+        + '<input id="fName" type="text" maxlength="'+NAME_MAX+'" placeholder="نام شما" oninput="validateName()" />'
+        + '<div class="field-hint" id="nameHint">بین '+NAME_MIN+' تا '+NAME_MAX+' کاراکتر</div>'
+        + '<label>شماره تماس</label>'
+        + '<input id="fPhone" type="tel" inputmode="numeric" placeholder="مثلا 09123456789" oninput="validatePhone()" />'
+        + '<div class="field-hint" id="phoneHint">شماره موبایل ۱۱ رقمی که با ۰۹ شروع شود</div>'
+        + '<label>آدرس تحویل</label>'
+        + '<textarea id="fAddr" placeholder="شهر، خیابان، پلاک و کد پستی"></textarea>'
+        + '<div class="field-hint">اختیاری ولی برای ارسال سریع‌تر توصیه می‌شود</div>'
+        + '<label>توضیحات سفارش</label>'
+        + '<textarea id="fNote" placeholder="رنگ، اندازه یا توضیحات دلخواه"></textarea>'
+        + '<div class="field-hint">اختیاری</div>'
+        + '<button class="btn order" id="orderBtn" onclick="submitOrder()">🛒 ثبت نهایی سفارش</button>'
+        + '<div id="status"></div>'
+        + '<button class="btn back" onclick="go(\'cart\')">↩️ بازگشت به سبد</button>'
+        + '</div>'
+      );
+    }
+
+    function screenSuccess(){
+      paint(
+        '<div class="card center">'
+        + '<div class="success-ic">✅</div>'
+        + '<h2 class="center">سفارش شما ثبت شد!</h2>'
+        + '<div class="h2sub center" style="margin-top:10px;line-height:2">با تشکر از خرید شما 🌸<br/>⏰ حداکثر ظرف یک روز با شما تماس گرفته می‌شود.</div>'
+        + '<button class="btn order" onclick="go(\'home\')">بازگشت به خانه</button>'
+        + '<button class="btn back" onclick="go(\'shop\')">خرید مجدد</button>'
+        + '</div>'
+      );
+    }
+
+    function screenContact(){
+      paint(
+        '<div class="card">'
+        + '<h2 class="center">📞 راه‌های ارتباطی</h2>'
+        + '<div class="h2sub center">همیشه پاسخگوی شما هستیم</div>'
+        + '<div class="contact-grid">'
+        + '<a class="btn" href="tel:09155764756">☎️ ۰۹۱۵۵۷۶۴۷۵۶</a>'
+        + '<a class="btn" href="tel:09157879170">☎️ ۰۹۱۵۷۸۷۹۱۷۰</a>'
+        + '</div>'
+        + '<div class="social-grid">'
+        + '<a class="btn insta" href="https://www.instagram.com/vesal_handicraft" target="_blank">📸 اینستاگرام</a>'
+        + '<a class="btn eitaa" href="https://eitaa.com/09155764756" target="_blank">🟢 ایتا</a>'
+        + '<a class="btn rubika" href="https://rubika.ir/09155764756" target="_blank">🟣 روبیکا</a>'
+        + '</div>'
+        + '</div>'
+        + '<div class="footer">فروشگاه صنایع دستی وصال 🌸</div>'
+      );
+    }
+
+    /* ---------- validation ---------- */
+    function validateName(){
+      var el=document.getElementById('fName'); var hint=document.getElementById('nameHint'); if(!el) return false;
+      var v=(el.value||'').trim();
+      if(v.length===0){ el.className=''; hint.className='field-hint'; hint.textContent='بین '+NAME_MIN+' تا '+NAME_MAX+' کاراکتر'; return false; }
+      if(v.length<NAME_MIN){ el.className='invalid'; hint.className='field-hint err'; hint.textContent='نام باید حداقل '+NAME_MIN+' کاراکتر باشد.'; return false; }
+      if(v.length>NAME_MAX){ el.className='invalid'; hint.className='field-hint err'; hint.textContent='نام نباید بیشتر از '+NAME_MAX+' کاراکتر باشد.'; return false; }
+      el.className='valid'; hint.className='field-hint ok'; hint.textContent='✓ نام معتبر است'; return true;
+    }
+    function validatePhone(){
+      var el=document.getElementById('fPhone'); var hint=document.getElementById('phoneHint'); if(!el) return false;
+      var raw=el.value||'';
+      if(raw.trim().length===0){ el.className=''; hint.className='field-hint'; hint.textContent='شماره موبایل ۱۱ رقمی که با ۰۹ شروع شود'; return false; }
+      var norm=normalizePhone(raw);
+      if(!/^[0-9\u06F0-\u06F9\u0660-\u0669+\- ]*$/.test(raw)){ el.className='invalid'; hint.className='field-hint err'; hint.textContent='شماره فقط باید عدد باشد.'; return false; }
+      if(norm.length<11){ el.className='invalid'; hint.className='field-hint err'; hint.textContent='شماره کامل نیست ('+norm.length+' رقم وارد شده).'; return false; }
+      if(!isValidPhone(raw)){ el.className='invalid'; hint.className='field-hint err'; hint.textContent='شماره موبایل معتبر نیست؛ باید ۱۱ رقم و با ۰۹ شروع شود.'; return false; }
+      el.className='valid'; hint.className='field-hint ok'; hint.textContent='✓ شماره معتبر است: '+norm; return true;
+    }
+
+    /* ---------- submit ---------- */
+    function submitOrder(){
+      var btn=document.getElementById('orderBtn'); var status=document.getElementById('status');
+      var okName=validateName(); var okPhone=validatePhone();
+      var nameEl=document.getElementById('fName'); var phoneEl=document.getElementById('fPhone');
+      if(!(nameEl.value||'').trim() || !(phoneEl.value||'').trim()){ status.textContent='⚠️ لطفا نام و شماره تماس را وارد کنید.'; return; }
+      if(!okName){ status.textContent='⚠️ نام وارد شده معتبر نیست.'; nameEl.focus(); return; }
+      if(!okPhone){ status.textContent='⚠️ شماره تماس معتبر نیست. لطفا اصلاح کنید.'; phoneEl.focus(); return; }
+      if(cart.length===0){ status.textContent='⚠️ سبد خرید خالی است.'; return; }
+
+      var n=(nameEl.value||'').trim();
+      var p=normalizePhone(phoneEl.value);
+      var addr=(document.getElementById('fAddr').value||'').trim();
+      var note=(document.getElementById('fNote').value||'').trim();
+      var u=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user)||{};
+
+      var lines=[]; var totalQty=0;
+      for(var i=0;i<cart.length;i++){ var pr=findProduct(cart[i].id); if(!pr) continue; totalQty+=cart[i].qty; lines.push('• '+pr.name+' — '+cart[i].qty+' '+pr.unit); }
+      var productText = lines.join('\n');
+      if(addr) productText += '\n📍 آدرس: '+addr;
+      if(note) productText += '\n📝 توضیحات: '+note;
+      var total=cartTotal();
+      var disc=discountAmount(); var pay=payableTotal();
+      if(coupon && disc>0){ productText += '\n🎟️ کد تخفیف: '+coupon.code+' ('+coupon.label+') - '+money(disc); }
+      var qtyText = total>0 ? (totalQty+' قلم | مبلغ: '+(disc>0 ? money(pay)+' (بعد از تخفیف)' : money(total))) : (totalQty+' قلم');
+
+      btn.disabled=true; status.textContent='در حال ثبت سفارش...';
+      var params=new URLSearchParams({ name:n, phone:p, product:productText, qty:qtyText, username:u.username||'', uid:String(u.id||'') });
+      fetch(ORDER_URL+'?'+params.toString())
+        .then(function(r){ return r.json(); })
+        .then(function(){ cart=[]; saveCart(); coupon=null; saveCoupon(null); haptic('ok'); state.tab='success'; render(); })
+        .catch(function(){ status.textContent='❌ خطا در ثبت سفارش. دوباره تلاش کنید.'; btn.disabled=false; });
+    }
+
+    /* ---------- native telegram buttons ---------- */
+    function syncTelegramButtons(){
+      if(!tg) return;
+      try {
+        if(tg.BackButton){
+          if(state.tab==='home'){ tg.BackButton.hide(); }
+          else { tg.BackButton.show(); tg.BackButton.offClick(onBack); tg.BackButton.onClick(onBack); }
+        }
+        syncMainButton();
+      } catch(e){}
+    }
+    function onBack(){
+      if(state.tab==='checkout') go('cart');
+      else if(state.tab==='detail') go('shop');
+      else if(state.tab==='cart' || state.tab==='shop' || state.tab==='contact' || state.tab==='success') go('home');
+    }
+    function syncMainButton(){
+      if(!tg || !tg.MainButton) return;
+      try {
+        var mb=tg.MainButton;
+        mb.offClick(onMain);
+        if(state.tab==='cart' && cart.length>0){ mb.setText('تکمیل سفارش'); mb.show(); mb.onClick(onMain); }
+        else if(state.tab==='shop' && cartCount()>0){ mb.setText('مشاهده سبد ('+cartCount()+')'); mb.show(); mb.onClick(onMain); }
+        else { mb.hide(); }
+      } catch(e){}
+    }
+    function onMain(){ if(state.tab==='cart') go('checkout'); else go('cart'); }
+
+    applyTheme(currentTheme());
+    render();
+  </script>
 </body>
 </html>
