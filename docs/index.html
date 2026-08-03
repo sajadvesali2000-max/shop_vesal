@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fa">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>در حال انتقال...</title>
+  <!-- Fallback for no-JS users -->
+  <meta http-equiv="refresh" content="0;url=/commit">
+  <script>
+    // Try a list of likely paths and redirect to the first that exists (same-origin fetch)
+    (function(){
+      var targets = ['/commit', '/commit.html', '/docs/commit', '/docs/commit.html'];
+      var found = false;
+      function tryNext(i){
+        if(i>=targets.length) return; // nothing found; rely on meta refresh
+        fetch(targets[i], {method: 'HEAD'}).then(function(res){
+          if(!found && res && (res.ok || res.status === 200)){
+            found = true;
+            window.location.replace(targets[i]);
+          } else {
+            tryNext(i+1);
+          }
+        }).catch(function(){ tryNext(i+1); });
+      }
+      tryNext(0);
+    })();
+  </script>
+</head>
+<body>
+  <p>در حال انتقال... اگر به طور خودکار منتقل نشدید، <a href="/commit">اینجا کلیک کنید</a>.</p>
+</body>
+</html>
