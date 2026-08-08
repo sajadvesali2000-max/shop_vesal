@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>فروشگاه وصال — وب‌اپ</title>
+  <meta name="theme-color" content="#0b0f2a" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:Tahoma,Segoe UI,Arial,sans-serif;background:#0b0f2a;color:#fff}
+    .wrap{max-width:720px;margin:18px auto;padding:18px}
+    .card{background:rgba(255,255,255,0.06);padding:16px;border-radius:14px;margin-bottom:14px}
+    /* logo CSS */
+    .logo-wrap{width:120px;height:120px;margin:0 auto 10px;border-radius:50%;padding:6px}
+    .logo-css{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:48px;
+      background:conic-gradient(from 0deg,#00e5ff,#7b2ff7,#ff2e97,#00ffa3);border:3px solid rgba(11,15,42,0.9);color:#fff}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#1d3557;color:#fff;border:none;cursor:pointer}
+    .btn.order{background:linear-gradient(135deg,#11998e,#38ef7d)}
+    input,textarea{width:100%;padding:10px;border-radius:8px;border:0;margin-top:8px}
+    .prod{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);margin-bottom:8px}
+    .thumb{font-size:28px;margin-left:10px}
+    .navlinks{display:flex;gap:8px;justify-content:center;margin-top:8px}
+    .status{margin-top:10px;font-weight:700;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="homeCard">
+      <div class="logo-wrap"><div class="logo-css" aria-hidden="true">و</div></div>
+      <h1 style="text-align:center;font-size:20px;margin-bottom:6px">فروشگاه صنایع دستی وصال</h1>
+      <p class="center" style="text-align:center;opacity:0.9">وب‌اپ نمونه — صفحهٔ اجرا</p>
+      <div class="navlinks">
+        <button class="btn" onclick="go('shop')">محصولات</button>
+        <button class="btn" onclick="go('cart')">سبد خرید</button>
+        <button class="btn" onclick="go('checkout')">تکمیل سفارش</button>
+      </div>
+    </div>
+
+    <div id="app"></div>
+
+    <div class="status" id="statusMsg"></div>
+  </div>
+
+  <script>
+    // ======= CONFIG ======
+    // ORDER_URL: server endpoint that will forward order to Telegram.
+    // If you deploy the serverless function elsewhere, replace this with absolute URL.
+    var ORDER_URL = '/webapp/api/send-order'; // when served from GitHub Pages this is a static file; replace with deployed function URL
+
+    var CATALOG = [
+      {id:'p1',name:'نخ ویسکوز سفید',unit:'کیلو',emoji:'🧶',price:0},
+      {id:'p2',name:'حوله حمام',unit:'عدد',emoji:'🛁',price:0},
+      {id:'p3',name:'چله سنتی',unit:'عدد',emoji:'🧵',price:0}
+    ];
+
+    var cart = JSON.parse(localStorage.getItem('vesal_cart')||'[]');
+    function saveCart(){ localStorage.setItem('vesal_cart', JSON.stringify(cart)); }
+    function addToCart(id){ var l=cart.find(x=>x.id===id); if(l) l.qty++; else cart.push({id:id,qty:1}); saveCart(); render(); }
+    function removeCart(id){ cart=cart.filter(x=>x.id!==id); saveCart(); render(); }
+
+    var state={tab:'home'};
+    function go(tab){ state.tab=tab; render(); }
+
+    function render(){
+      var app=document.getElementById('app');
+      if(state.tab==='home'){ app.innerHTML=''; return; }
+      if(state.tab==='shop'){
+        var html='<div class="card"><h2>محصولات</h2>';
+        CATALOG.forEach(p=>{
+          html += '<div class="prod"><div><strong>'+p.name+'</strong><div style="opacity:.8">'+p.unit+'</div></div><div><span class="thumb">'+p.emoji+'</span><button class="btn" onclick="addToCart(\''+p.id+'\')">افزودن</button></div></div>';
+        });
+        html += '</div>';
+        app.innerHTML=html;
+      } else if(state.tab==='cart'){
+        if(cart.length===0){ app.innerHTML='<div class="card"><h2>سبد خرید خالی است</h2></div>'; return; }
+        var html='<div class="card"><h2>سبد خرید</h2>';
+        cart.forEach(line=>{ var p=CATALOG.find(x=>x.id===line.id); html+='<div class="prod"><div><strong>'+p.name+'</strong><div style="opacity:.8">'+line.qty+' × '+p.unit+'</div></div><div><button class="btn" onclick="removeCart(\''+line.id+'\')">حذف</button></div></div>'; });
+        html += '<div style="margin-top:8px"><button class="btn order" onclick="go(\'checkout\')">تکمیل سفارش</button></div></div>';
+        app.innerHTML=html;
+      } else if(state.tab==='checkout'){
+        var lines=''; cart.forEach(line=>{ var p=CATALOG.find(x=>x.id===line.id); lines += p.name+' × '+line.qty+'\n'; });
+        var html='<div class="card"><h2>تکمیل سفارش</h2>'+
+          '<label>نام و نام خانوادگی</label><input id="fName" maxlength="50" />'+
+          '<label>شماره تماس</label><input id="fPhone" />'+
+          '<label>آدرس</label><textarea id="fAddr"></textarea>'+
+          '<div style="margin-top:8px"><button class="btn order" onclick="submitOrder()">ثبت نهایی سفارش</button></div>'+
+          '</div>';
+        app.innerHTML=html;
+      }
+    }
+
+    function normalizePhone(raw){ return (raw||'').replace(/[^0-9]/g,''); }
+
+    async function submitOrder(){
+      var name=document.getElementById('fName')?.value||'';
+      var phone=normalizePhone(document.getElementById('fPhone')?.value||'');
+      var addr=document.getElementById('fAddr')?.value||'';
+      var status=document.getElementById('statusMsg'); status.textContent='در حال ارسال...';
+      if(!name || !phone || cart.length===0){ status.textContent='لطفا نام، شماره و سبد را کامل کنید.'; return; }
+
+      var productLines = cart.map(l=>{ var p=CATALOG.find(x=>x.id===l.id); return '• '+p.name+' — '+l.qty+' '+p.unit; }).join('\n');
+      var payload = { name: name, phone: phone, product: productLines + (addr?('\n📍 آدرس: '+addr):''), qty: String(cart.reduce((s,c)=>s+c.qty,0)) };
+
+      try{
+        // Note: when served via GitHub Pages this endpoint won't run (static). Replace ORDER_URL with your deployed function URL.
+        var r = await fetch(ORDER_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+        var j = await r.json();
+        if(r.ok && j && j.ok){ cart=[]; saveCart(); status.textContent='سفارش ارسال شد ✅'; go('home'); }
+        else { console.error(j); status.textContent = 'خطا در ارسال سفارش: '+(j?.error||'نامشخص'); }
+      }catch(err){ console.error(err); status.textContent='خطای شبکه یا سرور.'; }
+    }
+
+    // init
+    render();
+  </script>
+</body>
+</html>
