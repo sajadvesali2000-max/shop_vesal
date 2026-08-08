@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>نمونهٔ ثبت سفارش — وصال</title>
+  <title>نمونهٔ ثبت سفارش</title>
   <meta name="theme-color" content="#0b0f2a" />
   <style>
     :root{--bg:#0b0f2a;--card:#11142a;--accent:#1d9a8b}
@@ -18,6 +18,9 @@
     .hint{font-size:13px;color:#ddd;margin-top:8px}
     .controls{display:flex;gap:8px;flex-wrap:wrap}
     .small{font-size:12px;color:#ccc;margin-top:8px}
+    .row{display:flex;gap:8px}
+    .col{flex:1}
+    @media(max-width:520px){.row{flex-direction:column}}
   </style>
 </head>
 <body>
@@ -26,8 +29,16 @@
       <h2 style="text-align:center">نمونهٔ ثبت سفارش</h2>
       <p style="text-align:center;opacity:0.85">این یک پروژهٔ نمونه است. گزینهٔ امن این است که توکن در سرور قرار بگیرد؛ اما اگر می‌خواهید موقتاً تست کنید می‌توانید توکن را در این صفحه وارد کنید (مخاطرات امنیتی دارد).</p>
 
-      <label for="name">نام و نام خانوادگی</label>
-      <input id="name" placeholder="مثلاً: علی رضایی" />
+      <div class="row">
+        <div class="col">
+          <label for="firstName">نام</label>
+          <input id="firstName" placeholder="مثلاً: علی" />
+        </div>
+        <div class="col">
+          <label for="lastName">نام خانوادگی</label>
+          <input id="lastName" placeholder="مثلاً: رضایی" />
+        </div>
+      </div>
 
       <label for="phone">شماره تماس</label>
       <input id="phone" placeholder="مثلاً: 09123456789" />
@@ -40,8 +51,8 @@
       <h3 style="margin-top:10px">روش ارسال به تلگرام</h3>
       <div class="hint">دو روش موجود است: (A) امن — ارسال توسط سرور (پیشنهاد شده) و (B) سریع/موقتی — ارسال مستقیم از مرورگر (ریسک دارد).</div>
 
-      <label for="use_client_token">اگر می‌خواهید موقتاً مستقیم از مرورگر ارسال شود، توکن بات را وارد کنید (موقت و ناامن)</label>
-      <input id="clientToken" type="password" placeholder="توکن بات را اینجا وارد کنید (اختیاری)" />
+      <label for="clientToken">توکن بات (برای ارسال مستقیم از مرورگر - اختیاری)</label>
+      <input id="clientToken" type="password" placeholder="توکن بات را اینجا وارد کنید (موقت)" />
       <div class="small">اگر این فیلد را خالی بگذارید، درخواست به endpoint سرورِ تنظیم‌شده در کد ارسال می‌شود (ORDER_URL).</div>
 
       <div class="controls">
@@ -66,7 +77,8 @@
     function normalizePhone(s){ return (s||'').replace(/[^0-9]/g,''); }
 
     document.getElementById('fill').addEventListener('click', function(){
-      document.getElementById('name').value='کاربر تست';
+      document.getElementById('firstName').value='کاربر';
+      document.getElementById('lastName').value='تست';
       document.getElementById('phone').value='09120000000';
       document.getElementById('addr').value='تهران، نمونه';
     });
@@ -89,17 +101,20 @@
     document.getElementById('submit').addEventListener('click', async function(){
       const btn = this;
       const st = document.getElementById('status'); st.textContent='';
-      const name = document.getElementById('name').value.trim();
+      const first = document.getElementById('firstName').value.trim();
+      const last = document.getElementById('lastName').value.trim();
+      const nameFull = ((first||'') + (last?(' '+last):'')).trim();
       const phone = normalizePhone(document.getElementById('phone').value);
       const addr = document.getElementById('addr').value.trim();
       const clientToken = document.getElementById('clientToken').value.trim();
 
-      if(!name || !phone){ st.textContent='لطفاً نام و شماره را وارد کنید.'; return; }
+      if(!nameFull){ st.textContent='لطفاً نام و نام خانوادگی را وارد کنید.'; return; }
+      if(!phone){ st.textContent='لطفاً شماره تماس را وارد کنید.'; return; }
 
       btn.disabled = true; st.textContent = 'در حال ارسال...';
 
-      const productText = 'سفارش جدید\n' + 'نام: ' + name + '\n' + 'شماره: ' + phone + '\n' + (addr?('آدرس: '+addr+'\n'):'') + 'زمان: ' + new Date().toLocaleString();
-      const payload = { name: name, phone: phone, address: addr, qty: 1 };
+      const productText = '📦 سفارش جدید\n' + '<b>نام:</b> ' + nameFull + '\n' + '<b>شماره:</b> ' + phone + '\n' + (addr?('<b>آدرس:</b> '+addr+'\n'):'') + '<b>زمان:</b> ' + new Date().toLocaleString();
+      const payload = { firstName: first, lastName: last, name: nameFull, phone: phone, address: addr, qty: 1 };
 
       try{
         if(clientToken){
