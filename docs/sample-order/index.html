@@ -15,13 +15,16 @@
     input,textarea{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#fff;color:#111}
     button{margin-top:16px;padding:12px 16px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:800;cursor:pointer}
     .status{margin-top:12px;font-weight:700}
+    .hint{font-size:13px;color:#ddd;margin-top:8px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .small{font-size:12px;color:#ccc;margin-top:8px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h2 style="text-align:center">نمونهٔ ثبت سفارش</h2>
-      <p style="text-align:center;opacity:0.85">این یک پروژهٔ نمونه است. بعد از deploy، دکمهٔ «ثبت سفارش» پیامی به تلگرام ارسال می‌کند.</p>
+      <p style="text-align:center;opacity:0.85">این یک پروژهٔ نمونه است. گزینهٔ امن این است که توکن در سرور قرار بگیرد؛ اما اگر می‌خواهید موقتاً تست کنید می‌توانید توکن را در این صفحه وارد کنید (مخاطرات امنیتی دارد).</p>
 
       <label for="name">نام و نام خانوادگی</label>
       <input id="name" placeholder="مثلاً: علی رضایی" />
@@ -32,45 +35,91 @@
       <label for="addr">آدرس</label>
       <textarea id="addr" rows="3" placeholder="شهر، خیابان، پلاک"></textarea>
 
-      <button id="submit">ثبت سفارش</button>
+      <hr style="margin-top:14px;border-color:rgba(255,255,255,0.04)" />
+
+      <h3 style="margin-top:10px">روش ارسال به تلگرام</h3>
+      <div class="hint">دو روش موجود است: (A) امن — ارسال توسط سرور (پیشنهاد شده) و (B) سریع/موقتی — ارسال مستقیم از مرورگر (ریسک دارد).</div>
+
+      <label for="use_client_token">اگر می‌خواهید موقتاً مستقیم از مرورگر ارسال شود، توکن بات را وارد کنید (موقت و ناامن)</label>
+      <input id="clientToken" type="password" placeholder="توکن بات را اینجا وارد کنید (اختیاری)" />
+      <div class="small">اگر این فیلد را خالی بگذارید، درخواست به endpoint سرورِ تنظیم‌شده در کد ارسال می‌شود (ORDER_URL).</div>
+
+      <div class="controls">
+        <button id="submit">ثبت سفارش</button>
+        <button id="fill" type="button">پر کردن نمونه</button>
+      </div>
+
       <div class="status" id="status"></div>
 
       <hr style="margin-top:18px;border-color:rgba(255,255,255,0.04)" />
       <div style="font-size:13px;opacity:0.85">این نمونه به Chat ID زیر ارسال می‌کند: <b>233880219</b></div>
-      <div style="font-size:13px;opacity:0.85">توجه: توکن بات باید به‌صورت امن در متغیر محیطی سرور قرار گیرد (TELEGRAM_BOT_TOKEN).</div>
+      <div style="font-size:12px;color:#f88;margin-top:8px">هشدار امنیتی: وارد کردن توکن در صفحهٔ کلاینت باعث می‌شود توکن در حافظه مرورگر قرار گیرد و هر کسی که به دستگاه شما یا شبکه دسترسی داشته باشد ممکن است آن را مشاهده کند. فقط برای تست‌های موقتی و محلی استفاده کنید؛ برای تولید از متغیر محیطی روی سرور استفاده کنید.</div>
+
     </div>
   </div>
 
   <script>
-    // تغییر دهید اگر endpoint سرورلِس شما آدرس دیگری دارد
-    // اگر در Vercel/Netlify مستقر می‌کنید، معمولا آدرس: /api/send-order
-    var ORDER_URL = '/sample-order/api/send-order'; // برای deploy محلی یا روی سرورِ شما ممکن است نیاز به تغییر باشد
+    // ORDER_URL: اگر سرور دارید endpoint را اینجا بگذارید، در غیر این صورت خالی بگذارید و از ارسال مستقیم استفاده کنید.
+    var ORDER_URL = '/api/send-order'; // مثال: '/api/send-order' یا 'https://your-app.vercel.app/api/send-order'
+    var CHAT_ID = '233880219';
 
     function normalizePhone(s){ return (s||'').replace(/[^0-9]/g,''); }
 
+    document.getElementById('fill').addEventListener('click', function(){
+      document.getElementById('name').value='کاربر تست';
+      document.getElementById('phone').value='09120000000';
+      document.getElementById('addr').value='تهران، نمونه';
+    });
+
+    async function sendViaServer(payload){
+      // send to server endpoint (recommended)
+      if(!ORDER_URL){ throw new Error('SERVER_ENDPOINT_NOT_SET'); }
+      const r = await fetch(ORDER_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      return r.json();
+    }
+
+    async function sendDirectToTelegram(token, chatId, text){
+      // direct send to Telegram API from client (may fail due to CORS and is insecure)
+      const url = 'https://api.telegram.org/bot' + encodeURIComponent(token) + '/sendMessage';
+      const body = { chat_id: String(chatId), text: text, parse_mode: 'HTML' };
+      const r = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      return r.json();
+    }
+
     document.getElementById('submit').addEventListener('click', async function(){
-      var status = document.getElementById('status');
-      var name = document.getElementById('name').value.trim();
-      var phone = normalizePhone(document.getElementById('phone').value);
-      var addr = document.getElementById('addr').value.trim();
+      const btn = this;
+      const st = document.getElementById('status'); st.textContent='';
+      const name = document.getElementById('name').value.trim();
+      const phone = normalizePhone(document.getElementById('phone').value);
+      const addr = document.getElementById('addr').value.trim();
+      const clientToken = document.getElementById('clientToken').value.trim();
 
-      if(!name || !phone){ status.textContent = 'لطفاً نام و شماره را وارد کنید.'; return; }
+      if(!name || !phone){ st.textContent='لطفاً نام و شماره را وارد کنید.'; return; }
 
-      status.textContent = 'در حال ارسال...';
-      this.disabled = true;
+      btn.disabled = true; st.textContent = 'در حال ارسال...';
 
-      var payload = { name: name, phone: phone, address: addr, qty: 1 };
+      const productText = 'سفارش جدید\n' + 'نام: ' + name + '\n' + 'شماره: ' + phone + '\n' + (addr?('آدرس: '+addr+'\n'):'') + 'زمان: ' + new Date().toLocaleString();
+      const payload = { name: name, phone: phone, address: addr, qty: 1 };
 
       try{
-        var res = await fetch(ORDER_URL, {
-          method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
-        });
-        var j = await res.json();
-        if(res.ok && j && j.ok){ status.textContent = 'سفارش ارسال شد ✅';
-          document.getElementById('name').value=''; document.getElementById('phone').value=''; document.getElementById('addr').value='';
-        } else { console.error(j); status.textContent = 'خطا در ارسال سفارش: '+(j && j.error? j.error : 'نامشخص'); }
-      }catch(err){ console.error(err); status.textContent = 'خطای شبکه یا سرور.'; }
-      this.disabled = false;
+        if(clientToken){
+          // Direct from browser using provided token (NOT recommended)
+          try{
+            const res = await sendDirectToTelegram(clientToken, CHAT_ID, productText);
+            if(res && res.ok){ st.textContent = 'سفارش ارسال شد (مستقیم ✅)';
+            } else { console.error(res); st.textContent = 'خطا در ارسال مستقیم: ' + (res && res.description ? res.description : 'نامشخص'); }
+          } catch(err){ console.error(err); st.textContent = 'خطا در ارسال مستقیم (ممکن است CORS یا خطای شبکه باشد).'; }
+        } else {
+          // Send to configured server endpoint
+          try{
+            const res = await sendViaServer(payload);
+            if(res && res.ok){ st.textContent = 'سفارش ارسال شد (سرور ✅)'; }
+            else { console.error(res); st.textContent = 'خطا در ارسال به سرور: ' + (res && res.error ? res.error : 'نامشخص'); }
+          } catch(err){ console.error(err); st.textContent = 'خطا در ارسال به سرور: ' + (err.message || err); }
+        }
+      } finally {
+        btn.disabled = false;
+      }
     });
   </script>
 </body>
