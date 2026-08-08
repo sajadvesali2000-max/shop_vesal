@@ -1,0 +1,9 @@
+.env
+# Ignore environment files that may contain secrets
+.env.local
+.env.*
+.DS_Store
+node_modules/
+.vscode/
+.vercel/
+.netlify/
