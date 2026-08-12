@@ -710,69 +710,176 @@
     }
 
     /* ---------- submit ---------- */
-    function submitOrder(){
-      var btn=document.getElementById('orderBtn'); var status=document.getElementById('status');
-      var okName=validateName(); var okPhone=validatePhone();
-      var nameEl=document.getElementById('fName'); var phoneEl=document.getElementById('fPhone');
-      if(!(nameEl.value||'').trim() || !(phoneEl.value||'').trim()){ status.textContent='⚠️ لطفا نام و شماره تماس را وارد کنید.'; return; }
-      if(!okName){ status.textContent='⚠️ نام وارد شده معتبر نیست.'; nameEl.focus(); return; }
-      if(!okPhone){ status.textContent='⚠️ شماره تماس معتبر نیست. لطفا اصلاح کنید.'; phoneEl.focus(); return; }
-      if(cart.length===0){ status.textContent='⚠️ سبد خرید خالی است.'; return; }
+<script>
+function submitOrder(){
+  var btn = document.getElementById('orderBtn');
+  var status = document.getElementById('status');
 
-      var n=(nameEl.value||'').trim();
-      var p=normalizePhone(phoneEl.value);
-      var addr=(document.getElementById('fAddr').value||'').trim();
-      var note=(document.getElementById('fNote').value||'').trim();
-      var u=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user)||{};
+  var okName = validateName();
+  var okPhone = validatePhone();
 
-      var lines=[]; var totalQty=0;
-      for(var i=0;i<cart.length;i++){ var pr=findProduct(cart[i].id); if(!pr) continue; totalQty+=cart[i].qty; lines.push('• '+pr.name+' — '+cart[i].qty+' '+pr.unit); }
-      var productText = lines.join('\n');
-      if(addr) productText += '\n📍 آدرس: '+addr;
-      if(note) productText += '\n📝 توضیحات: '+note;
-      var total=cartTotal();
-      var disc=discountAmount(); var pay=payableTotal();
-      if(coupon && disc>0){ productText += '\n🎟️ کد تخفیف: '+coupon.code+' ('+coupon.label+') - '+money(disc); }
-      var qtyText = total>0 ? (totalQty+' قلم | مبلغ: '+(disc>0 ? money(pay)+' (بعد از تخفیف)' : money(total))) : (totalQty+' قلم');
+  var nameEl = document.getElementById('fName');
+  var phoneEl = document.getElementById('fPhone');
 
-      btn.disabled=true; status.textContent='در حال ثبت سفارش...';
-      var params=new URLSearchParams({ name:n, phone:p, product:productText, qty:qtyText, username:u.username||'', uid:String(u.id||'') });
-      fetch(ORDER_URL+'?'+params.toString())
-        .then(function(r){ return r.json(); })
-        .then(function(){ cart=[]; saveCart(); coupon=null; saveCoupon(null); haptic('ok'); state.tab='success'; render(); })
-        .catch(function(){ status.textContent='❌ خطا در ثبت سفارش. دوباره تلاش کنید.'; btn.disabled=false; });
+  if (!(nameEl.value || '').trim() || !(phoneEl.value || '').trim()) {
+    status.textContent = '⚠️ لطفا نام و شماره تماس را وارد کنید.';
+    return;
+  }
+
+  if (!okName) {
+    status.textContent = '⚠️ نام وارد شده معتبر نیست.';
+    nameEl.focus();
+    return;
+  }
+
+  if (!okPhone) {
+    status.textContent = '⚠️ شماره تماس معتبر نیست. لطفا اصلاح کنید.';
+    phoneEl.focus();
+    return;
+  }
+
+  if (cart.length === 0) {
+    status.textContent = '⚠️ سبد خرید خالی است.';
+    return;
+  }
+
+  var n = (nameEl.value || '').trim();
+  var p = normalizePhone(phoneEl.value);
+
+  var addrEl = document.getElementById('fAddr');
+  var noteEl = document.getElementById('fNote');
+
+  var addr = addrEl ? (addrEl.value || '').trim() : '';
+  var note = noteEl ? (noteEl.value || '').trim() : '';
+
+  var u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user)
+    ? tg.initDataUnsafe.user
+    : {};
+
+  var lines = [];
+  var totalQty = 0;
+
+  for (var i = 0; i < cart.length; i++) {
+    var pr = findProduct(cart[i].id);
+
+    if (!pr) continue;
+
+    totalQty += cart[i].qty;
+
+    lines.push(
+      '• ' +
+      pr.name +
+      ' — ' +
+      cart[i].qty +
+      ' ' +
+      pr.unit
+    );
+  }
+
+  var total = cartTotal();
+  var disc = discountAmount();
+  var pay = payableTotal();
+
+  var message =
+    '🛍️ سفارش جدید فروشگاه صنایع دستی وصال\n' +
+    '━━━━━━━━━━━━━━━━━━\n\n' +
+
+    '👤 نام مشتری: ' + n + '\n' +
+    '📞 شماره تماس: ' + p + '\n';
+
+  if (u.username) {
+    message += '👤 یوزرنیم تلگرام: @' + u.username + '\n';
+  }
+
+  if (u.id) {
+    message += '🆔 Telegram ID: ' + String(u.id) + '\n';
+  }
+
+  message += '\n📦 محصولات:\n';
+
+  if (lines.length > 0) {
+    message += lines.join('\n') + '\n';
+  }
+
+  message += '\n🔢 تعداد اقلام: ' + totalQty + '\n';
+
+  if (total > 0) {
+    message += '💰 مبلغ اصلی: ' + money(total) + '\n';
+
+    if (disc > 0 && coupon) {
+      message +=
+        '🎟️ تخفیف: ' +
+        coupon.label +
+        ' (' +
+        coupon.code +
+        ')\n';
+
+      message += '➖ مبلغ تخفیف: ' + money(disc) + '\n';
+      message += '💵 مبلغ نهایی: ' + money(pay) + '\n';
+    }
+  } else {
+    message += '💰 قیمت: هنگام تماس اعلام می‌شود\n';
+  }
+
+  if (addr) {
+    message +=
+      '\n📍 آدرس تحویل:\n' +
+      addr +
+      '\n';
+  }
+
+  if (note) {
+    message +=
+      '\n📝 توضیحات سفارش:\n' +
+      note +
+      '\n';
+  }
+
+  message +=
+    '\n━━━━━━━━━━━━━━━━━━\n' +
+    '🌸 فروشگاه صنایع دستی وصال';
+
+  /*
+   * باز کردن چت @vesalcotton با متن آماده سفارش
+   */
+  var telegramUrl =
+    'https://t.me/vesalcotton?text=' +
+    encodeURIComponent(message);
+
+  btn.disabled = true;
+  status.textContent = 'در حال آماده‌سازی سفارش...';
+
+  try {
+    if (tg && typeof tg.openLink === 'function') {
+      tg.openLink(telegramUrl);
+    } else {
+      window.open(telegramUrl, '_blank');
     }
 
-    /* ---------- native telegram buttons ---------- */
-    function syncTelegramButtons(){
-      if(!tg) return;
-      try {
-        if(tg.BackButton){
-          if(state.tab==='home'){ tg.BackButton.hide(); }
-          else { tg.BackButton.show(); tg.BackButton.offClick(onBack); tg.BackButton.onClick(onBack); }
-        }
-        syncMainButton();
-      } catch(e){}
-    }
-    function onBack(){
-      if(state.tab==='checkout') go('cart');
-      else if(state.tab==='detail') go('shop');
-      else if(state.tab==='cart' || state.tab==='shop' || state.tab==='contact' || state.tab==='success') go('home');
-    }
-    function syncMainButton(){
-      if(!tg || !tg.MainButton) return;
-      try {
-        var mb=tg.MainButton;
-        mb.offClick(onMain);
-        if(state.tab==='cart' && cart.length>0){ mb.setText('تکمیل سفارش'); mb.show(); mb.onClick(onMain); }
-        else if(state.tab==='shop' && cartCount()>0){ mb.setText('مشاهده سبد ('+cartCount()+')'); mb.show(); mb.onClick(onMain); }
-        else { mb.hide(); }
-      } catch(e){}
-    }
-    function onMain(){ if(state.tab==='cart') go('checkout'); else go('cart'); }
+    /*
+     * فقط بعد از باز شدن تلگرام،
+     * سبد و کوپن پاک می‌شوند.
+     */
+    cart = [];
+    saveCart();
 
-    applyTheme(currentTheme());
+    coupon = null;
+    saveCoupon(null);
+
+    haptic('ok');
+
+    state.tab = 'success';
     render();
-  </script>
+
+  } catch (e) {
+    console.error(e);
+
+    status.textContent =
+      '❌ باز کردن تلگرام انجام نشد. دوباره امتحان کنید.';
+
+    btn.disabled = false;
+  }
+}
+</script>
 </body>
 </html>
